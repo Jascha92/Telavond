@@ -1,0 +1,13 @@
+{
+  "name": "telavond",
+  "version": "1.0.0",
+  "description": "Het teltafelspel van afdeling Verkiezingen Den Haag",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

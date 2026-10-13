@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: telavond
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: "echo geen build nodig"
+    startCommand: "node server.js"
+    healthCheckPath: /gezond
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false

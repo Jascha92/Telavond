@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Telavond</title>
+<meta name="description" content="Het teltafelspel van afdeling Verkiezingen Den Haag.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Big+Shoulders+Display:wght@700;900&family=Caveat:wght@600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: groene teltafel (spel) links, proces-verbaal-scorebord rechts, spelregels met voorbeeldbiljetten eronder */
+:root{
+  --page:#E9EEE9; --ink:#14201A; --muted:#56635B; --line:#C4CEC6; --surface:#FFFFFF;
+  --tafel:#0F5A33; --tafel-2:#0A4426; --tafel-ink:#EAF3EC; --tafel-muted:#A9C7B3;
+  --geel:#F5C400; --rood:#D2231C; --papier:#FBFBF7; --papier-ink:#1B1F1C; --papier-lijn:#C9CCC4;
+  --goed:#1E8A4A; --fout:#C0241C;
+  --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --f-hand:"Caveat","Comic Sans MS",cursive;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --page:#0D1410; --ink:#E4ECE6; --muted:#98A69D; --line:#2A362F; --surface:#141D18;
+  --tafel:#0C4A2A; --tafel-2:#08361E; --goed:#3DBA6E; --fout:#F0584F; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --page:#0D1410; --ink:#E4ECE6; --muted:#98A69D; --line:#2A362F; --surface:#141D18;
+  --tafel:#0C4A2A; --tafel-2:#08361E; --goed:#3DBA6E; --fout:#F0584F; color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+body{background:var(--page);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:20px 48px;display:grid;gap:28px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--geel);outline-offset:2px}
+
+/* Kop */
+.kop{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;border-bottom:2px solid var(--ink);padding-bottom:12px}
+.kop h1{font-family:var(--f-display);font-weight:900;font-size:clamp(44px,8vw,76px);line-height:.85;margin:0;letter-spacing:.01em;text-transform:uppercase}
+.kop h1 span{color:var(--rood)}
+.kop p{margin:0;color:var(--muted);max-width:44ch;text-wrap:balance}
+.vlag{display:inline-flex;height:10px;width:44px;border-radius:2px;overflow:hidden;vertical-align:middle;margin-right:8px}
+.vlag i{flex:1}.vlag i:first-child{background:var(--geel)}.vlag i:last-child{background:#1E7A3C}
+
+.hoofd{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:24px;align-items:start}
+@media (max-width:920px){.hoofd{grid-template-columns:minmax(0,1fr)}}
+
+/* Teltafel */
+.tafel{background:var(--tafel);background-image:radial-gradient(circle at 20% 10%,rgba(255,255,255,.06),transparent 45%),radial-gradient(circle at 90% 100%,rgba(0,0,0,.25),transparent 55%);
+  color:var(--tafel-ink);border-radius:16px;padding:16px;display:grid;gap:12px;min-width:0;box-shadow:inset 0 0 0 6px var(--tafel-2)}
+.hud{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 18px;padding-inline:6px}
+.hud .blok{display:grid;line-height:1.05}
+.hud small{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--tafel-muted)}
+.hud .num{font-family:var(--f-mono);font-weight:700;font-size:26px;font-variant-numeric:tabular-nums}
+.hud .num.groot{font-size:34px;color:var(--geel)}
+.potloden{display:flex;gap:4px;margin-top:4px}
+.potloden svg{width:30px;height:12px;transition:opacity .2s}
+.potloden svg.kwijt{opacity:.18}
+.klok{height:8px;border-radius:4px;background:rgba(0,0,0,.3);overflow:hidden}
+.klok i{display:block;height:100%;width:100%;background:var(--geel);transform-origin:left}
+.klok.krap i{background:var(--rood)}
+
+.stage{position:relative;height:360px;overflow:hidden;border-radius:10px}
+@media (max-width:560px){.stage{height:330px}}
+.biljet{position:absolute;left:50%;top:50%;width:min(94%,540px);transform:translate(-50%,-50%);background:var(--papier);color:var(--papier-ink);
+  border-radius:3px;box-shadow:0 10px 24px rgba(0,0,0,.35);padding:10px 10px 12px;font-size:12px;line-height:1.25;overflow:hidden}
+.biljet.p1{transform:translate(-44%,-53%) rotate(3deg) scale(.94);opacity:.5;filter:saturate(.4)}
+.biljet.p2{transform:translate(-39%,-56%) rotate(6deg) scale(.88);opacity:.28;filter:saturate(.2)}
+.biljet.huidig{animation:in .16s ease-out}
+@keyframes in{from{transform:translate(-44%,-53%) rotate(3deg) scale(.94)}}
+.biljet.uit-goed{transition:transform .24s ease-in,opacity .24s;transform:translate(-50%,40%) scale(.7);opacity:0}
+.biljet.uit-fout{transition:transform .26s ease-in,opacity .26s;transform:translate(-50%,-50%) rotate(-14deg) translateX(-60%);opacity:0}
+.bk{display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline;border-bottom:2px solid var(--papier-ink);padding-bottom:5px;margin-bottom:6px}
+.bk b{font-family:var(--f-display);font-size:17px;text-transform:uppercase;letter-spacing:.04em}
+.bk span{color:#555;font-size:11px}
+.bk .bnr{margin-left:auto;font-family:var(--f-mono)}
+.lijsten{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0}
+.lijst{border-left:1px solid var(--papier-lijn);padding-inline:5px;min-width:0}
+.lijst:first-child{border-left:0;padding-left:0}
+.lh{display:grid;border-bottom:1px solid var(--papier-lijn);margin-bottom:3px;padding-bottom:2px}
+.lh span{font-weight:700}
+.lh small{font-size:10px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kand{display:flex;align-items:center;gap:4px;height:19px;min-width:0}
+.vak{flex:none;width:13px;height:13px;border:1.4px solid var(--papier-ink);border-radius:1px;display:grid;place-items:center;color:var(--rood)}
+.vak svg,.naast svg{width:100%;height:100%;display:block}
+.vak.fill{background:repeating-linear-gradient(118deg,var(--rood) 0 2px,rgba(210,35,28,.72) 2px 3px);box-shadow:0 0 0 1.5px rgba(210,35,28,.55)}
+.vak.faint{background:repeating-linear-gradient(118deg,rgba(210,35,28,.5) 0 1.5px,transparent 1.5px 3px)}
+.naam{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;font-size:11px}
+.naast{flex:none;width:13px;height:13px;color:var(--rood);margin-left:-2px}
+.vak.check{color:var(--rood)}
+.vak.struck{background:repeating-linear-gradient(118deg,var(--rood) 0 2px,rgba(210,35,28,.72) 2px 3px);color:var(--papier-ink)}
+.vak.blauw{background:repeating-linear-gradient(118deg,#1F4FBF 0 2px,rgba(31,79,191,.7) 2px 3px)}
+.vak.dot{background:radial-gradient(circle,var(--rood) 0 1.3px,transparent 1.6px)}
+.naam.cirkel{overflow:visible;border-radius:50%;box-shadow:0 0 0 1.6px var(--rood);padding-inline:3px;margin-left:-2px}
+.krabbel.handtekening{width:84px;height:28px;color:var(--rood)}.krabbel.handtekening svg{width:100%;height:100%;display:block}
+.streep{text-decoration:line-through;text-decoration-color:var(--rood);text-decoration-thickness:2px}
+.krabbel.smiley{width:32px;height:32px;color:var(--rood)}.krabbel.smiley svg{width:100%;height:100%;display:block}
+.biljet.met-krabbel{padding-bottom:40px}
+.krabbel{position:absolute;bottom:4px;font-family:var(--f-hand);font-size:26px;line-height:1.1;color:var(--rood);transform:rotate(-4deg);white-space:nowrap;pointer-events:none;opacity:.9}
+.vlek{position:absolute;width:74px;height:74px;border-radius:50%;background:radial-gradient(circle,rgba(150,95,40,.10) 55%,rgba(120,72,30,.32) 64%,rgba(150,95,40,.08) 70%,transparent 72%);pointer-events:none}
+@media (max-width:560px){.biljet{font-size:10.5px;padding:8px}.naam{font-size:9.5px}.lh small{font-size:9px}.vak,.naast{width:11px;height:11px}.kand{height:17px}.krabbel{font-size:20px}.biljet.met-krabbel{padding-bottom:34px}.bk span:not(.bnr){display:none}}
+
+.melding{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:5;font-weight:700;font-family:var(--f-mono);font-size:15px;padding:4px 12px;border-radius:999px;white-space:nowrap;pointer-events:none;opacity:0}
+.melding.goed{background:var(--geel);color:#1B1F1C;animation:pop .7s ease-out}
+.melding.fout{background:var(--rood);color:#fff;animation:pop 1.1s ease-out}
+@keyframes pop{0%{opacity:0;transform:translate(-50%,6px)}15%{opacity:1;transform:translate(-50%,0)}75%{opacity:1}100%{opacity:0}}
+
+.overlay{position:absolute;inset:0;z-index:6;display:grid;place-items:center;background:rgba(6,40,22,.86);padding:12px 16px;text-align:center;overflow-y:auto}
+.overlay .kaart{display:grid;gap:8px;justify-items:center;max-width:440px}
+.overlay h2{font-family:var(--f-display);font-weight:900;font-size:34px;line-height:1;margin:0;text-transform:uppercase;color:var(--geel)}
+.overlay p{margin:0;font-size:14px;line-height:1.35;color:var(--tafel-muted);text-wrap:balance}
+.stats{display:grid;grid-template-columns:repeat(4,auto);gap:4px 18px;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.stats b{display:block;font-size:22px;color:var(--tafel-ink)}
+.stats span{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--tafel-muted);font-family:var(--f-body)}
+@media (max-width:480px){.stats{grid-template-columns:repeat(2,auto)}}
+.knop{background:var(--geel);color:#1B1F1C;border:0;border-radius:8px;padding:10px 20px;font-weight:700;font-size:16px}
+.knop:hover{filter:brightness(1.06)}
+.knop.stil{background:transparent;color:var(--tafel-ink);box-shadow:inset 0 0 0 1.5px var(--tafel-muted)}
+.naamveld{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;width:100%}
+.naamveld input{flex:1 1 180px;min-width:0;max-width:260px;border-radius:8px;border:0;padding:10px 12px;font:inherit;background:var(--papier);color:var(--papier-ink)}
+.status{font-size:13px;min-height:1.3em;color:var(--tafel-muted)}
+.pinveld{display:grid;gap:6px;width:100%}
+.pinveld p{font-size:13px}
+
+.bakken{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+@media (max-width:640px){.bakken{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.bak{position:relative;border:0;border-radius:10px;background:var(--papier);color:var(--papier-ink);padding:10px 8px 9px;display:grid;gap:1px;text-align:left;min-width:0;
+  box-shadow:0 3px 0 rgba(0,0,0,.35);transition:transform .06s}
+.bak:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.35)}
+.bak b{font-size:15px}
+.bak small{font-size:11px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bak kbd{position:absolute;right:7px;top:7px;font-family:var(--f-mono);font-size:11px;border:1px solid #bbb;border-radius:4px;padding:0 5px;color:#555;background:#fff}
+.bak.blanco{background:#DDE6DF}
+.bak.ongeldig{background:#F7D9D6}
+.bak.flits-goed{box-shadow:0 0 0 3px var(--geel),0 3px 0 rgba(0,0,0,.35)}
+.bak.flits-fout{box-shadow:0 0 0 3px var(--rood),0 3px 0 rgba(0,0,0,.35)}
+@media (hover:none){.bak kbd{display:none}}
+.tip{margin:0;font-size:12px;color:var(--tafel-muted);padding-inline:6px}
+
+/* Proces-verbaal scorebord */
+.pv{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:16px;min-width:0;display:grid;gap:10px}
+.pv-kop{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px;border-bottom:3px double var(--ink);padding-bottom:8px}
+.pv h2{margin:0;font-family:var(--f-display);font-size:28px;line-height:1;text-transform:uppercase}
+.pv .model{font-family:var(--f-mono);font-size:11px;color:var(--muted);white-space:nowrap}
+.pv .sub{margin:0;font-size:13px;color:var(--muted)}
+.pv table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.pv th{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:700;padding:4px 6px;border-bottom:1px solid var(--line)}
+.pv td{padding:7px 6px;border-bottom:1px dotted var(--line);font-size:14px}
+.pv td.r,.pv th.r{text-align:right}
+.pv td.nr{font-family:var(--f-mono);color:var(--muted);width:2.2em}
+.pv td.pt{font-family:var(--f-mono);font-weight:700}
+.pv td.nm{max-width:0;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv tr.top td.nr{color:var(--rood);font-weight:700}
+.pv tr.jij td{background:color-mix(in srgb,var(--geel) 22%,transparent)}
+.pv .leeg{padding:18px 6px;color:var(--muted);text-align:center;font-size:14px}
+.pv .voet{font-size:12px;color:var(--muted);margin:0}
+.badge{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--ink);color:var(--surface);border-radius:3px;padding:1px 5px;margin-left:6px;vertical-align:1px}
+
+/* Korte uitleg */
+.view{display:grid;gap:24px}
+.uitleg{display:grid;gap:14px;border-top:2px solid var(--ink);padding-top:14px}
+.uitleg-rij{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px 24px}
+.uitleg-rij div{display:grid;gap:2px;align-content:start;min-width:0;font-size:14px;color:var(--muted)}
+.uitleg-rij b{color:var(--ink);font-size:15px}
+.link-knop{justify-self:start;background:none;border:0;padding:0;color:var(--ink);font-weight:700;font-size:15px;text-decoration:underline;text-decoration-color:var(--rood);text-decoration-thickness:2px;text-underline-offset:4px}
+.link-knop:hover{color:var(--rood)}
+
+/* Spelregels */
+.regels{display:grid;gap:14px}
+.regels h2{margin:0;font-family:var(--f-display);font-size:30px;text-transform:uppercase;line-height:1}
+.regels > p{margin:0;color:var(--muted);max-width:70ch}
+.voorbeelden{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.vb{display:grid;gap:8px;align-content:start;min-width:0}
+.vb .mini{position:relative;height:150px;background:var(--tafel);border-radius:8px;overflow:hidden}
+.vb .mini .biljet{width:92%;transform:translate(-50%,-50%);font-size:10px;box-shadow:0 4px 10px rgba(0,0,0,.3);padding:7px}
+.vb .mini .naam{font-size:9px}.vb .mini .lh small{font-size:8.5px}.vb .mini .vak,.vb .mini .naast{width:10px;height:10px}.vb .mini .kand{height:15px}.vb .mini .bk b{font-size:13px}.vb .mini .bk span:not(.bnr){display:none}
+.vb .mini .biljet.met-krabbel{padding-bottom:28px}.vb .mini .krabbel{font-size:17px;bottom:3px}.vb .mini .krabbel.smiley{width:24px;height:24px}.vb .mini .krabbel.handtekening{width:62px;height:22px}.vb .mini .vlek{width:52px;height:52px}
+.vb .uitslag{font-weight:700;font-size:14px;display:flex;justify-content:space-between;gap:8px;align-items:baseline}.vb .nv{font-weight:400;font-size:11px;color:var(--muted);font-family:var(--f-mono);white-space:nowrap}
+.vb .uitslag.g{color:var(--goed)}.vb .uitslag.o{color:var(--fout)}.vb .uitslag.b{color:var(--muted)}
+.vb p{margin:0;font-size:13px;color:var(--muted)}
+.punten{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:14px;margin:0;padding:12px 14px;border:1px solid var(--line);border-radius:4px;background:var(--surface)}
+.punten span b{font-family:var(--f-mono)}
+
+@media (prefers-reduced-motion:reduce){
+  .biljet.huidig{animation:none}.biljet.uit-goed,.biljet.uit-fout{transition:none;opacity:0}
+  .melding.goed,.melding.fout{animation:none;opacity:1}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="kop">
+    <h1>Tel<span>avond</span></h1>
+    <p><span class="vlag"><i></i><i></i></span>Het teltafelspel van afdeling Verkiezingen Den Haag. Sorteer stembiljetten sneller en foutlozer dan je collega's.</p>
+  </header>
+
+  <div id="viewSpel" class="view">
+  <div class="hoofd">
+    <section class="tafel" aria-label="Spel">
+      <div class="hud">
+        <div class="blok"><small>Punten</small><span class="num groot" id="hScore">0</span></div>
+        <div class="blok"><small>Reeks</small><span class="num" id="hMult">×1</span></div>
+        <div class="blok"><small>Biljet</small><span class="num" id="hBiljet">0/100</span></div>
+        <div class="blok"><small>Niveau</small><span class="num" id="hNiveau">1/6</span></div>
+        <div class="blok"><small>Rode potloden</small><div class="potloden" id="hLevens"></div></div>
+        <div class="blok"><small>Jouw record</small><span class="num" id="hRecord">–</span></div>
+      </div>
+      <div class="klok" id="klok"><i id="klokBar"></i></div>
+      <div class="stage" id="stage">
+        <div class="melding" id="melding"></div>
+        <div class="overlay" id="startScherm">
+          <div class="kaart">
+            <h2>Klaar om te tellen?</h2>
+            <p>Eén stembus: 100 biljetten. Na 5 korte opwarmniveaus tel je de laatste 50 op het snelste tempo. Lastige biljetten krijgen iets meer tijd. Drie keer fout of te laat en je telling stopt.</p>
+            <button class="knop" id="startKnop" type="button">Start telling</button>
+            <p style="font-size:12px">Toetsen 1 t/m 4 voor de lijsten, B voor blanco, O voor ongeldig. Enter start.</p>
+          </div>
+        </div>
+        <div class="overlay" id="eindScherm" hidden>
+          <div class="kaart">
+            <h2 id="eTitel">Stembus leeg!</h2>
+            <div class="stats">
+              <div><b id="eScore">0</b><span>Punten</span></div>
+              <div><b id="eGeteld">0</b><span>Goed geteld</span></div>
+              <div><b id="eNauwk">0%</b><span>Nauwkeurig</span></div>
+              <div><b id="eReeks">0</b><span>Langste reeks</span></div>
+            </div>
+            <p id="eBonus"></p>
+            <p id="eRecord"></p>
+            <div class="naamveld">
+              <input id="naam" type="text" maxlength="24" placeholder="Je naam op het scorebord" autocomplete="nickname" aria-label="Je naam op het scorebord">
+              <button class="knop" id="opslaan" type="button">Op het scorebord</button>
+            </div>
+            <div class="status" id="opslaanStatus" role="status"></div>
+            <div class="pinveld" id="pinVeld" hidden>
+              <p id="pinUitleg"></p>
+              <div class="naamveld">
+                <input id="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Pincode (4–6 cijfers)" autocomplete="off" aria-label="Pincode">
+                <button class="knop" id="pinKnop" type="button">Pincode instellen</button>
+              </div>
+            </div>
+            <button class="knop stil" id="opnieuw" type="button">Nog een ronde</button>
+          </div>
+        </div>
+      </div>
+      <div class="bakken" id="bakken">
+        <button class="bak" type="button" data-keuze="l1"><kbd>1</kbd><b>Lijst 1</b><small>Duinpartij</small></button>
+        <button class="bak" type="button" data-keuze="l2"><kbd>2</kbd><b>Lijst 2</b><small>Pier &amp; Plein</small></button>
+        <button class="bak" type="button" data-keuze="l3"><kbd>3</kbd><b>Lijst 3</b><small>Hofvijverlijst</small></button>
+        <button class="bak" type="button" data-keuze="l4"><kbd>4</kbd><b>Lijst 4</b><small>Haagse Haring</small></button>
+        <button class="bak blanco" type="button" data-keuze="blanco"><kbd>B</kbd><b>Blanco</b><small>niets ingevuld</small></button>
+        <button class="bak ongeldig" type="button" data-keuze="ongeldig"><kbd>O</kbd><b>Ongeldig</b><small>afkeuren</small></button>
+      </div>
+      <p class="tip">Partijen en kandidaten zijn verzonnen. De spelregels zijn gebaseerd op voorbeelden van de Kiesraad, maar vereenvoudigd. Bij twijfel geldt de officiële instructie.</p>
+    </section>
+
+    <aside class="pv" aria-label="Scorebord">
+      <div class="pv-kop"><h2>Scorebord</h2><span class="model">Model N 10-1 (spelversie)</span></div>
+      <p class="sub" id="pvSub">Proces-verbaal van de snelste tellers van de afdeling.</p>
+      <table>
+        <thead><tr><th>Nr.</th><th>Teller</th><th class="r">Punten</th><th class="r">Nauwk.</th></tr></thead>
+        <tbody id="pvBody"><tr><td colspan="4" class="leeg">Scorebord laden…</td></tr></tbody>
+      </table>
+      <p class="voet" id="pvVoet"></p>
+    </aside>
+  </div>
+
+  <section class="uitleg" aria-label="Korte uitleg">
+    <div class="uitleg-rij">
+      <div><b>Sorteer</b><span>Kies de lijst, blanco of ongeldig. Toetsen 1–4, B en O, of tik op de knoppen.</span></div>
+      <div><b>Geldig of ongeldig</b><span>Eén rood vakje is een stem. Twee vakjes, een naam of geen rood vakje maakt het biljet ongeldig.</span></div>
+      <div><b>Eén stembus</b><span>100 biljetten en 3 rode potloden. Drie keer fout of te laat en je telling stopt.</span></div>
+      <div><b>Punten</b><span>Snel antwoorden, een reeks tot ×5 en 5.000 bonus per potlood dat je overhoudt.</span></div>
+    </div>
+    <button class="link-knop" id="naarVoorbeelden" type="button">Bekijk alle voorbeeldbiljetten</button>
+  </section>
+  </div>
+
+  <section class="regels view" id="viewVoorbeelden" aria-label="Spelregels en voorbeelden" hidden>
+    <button class="link-knop terug" id="naarSpel" type="button">← Terug naar het spel</button>
+    <h2>Zo tel je</h2>
+    <p>Kijk naar het rode potlood. Precies één vakje rood gemaakt, met inkleuren, een kruisje of een vinkje, is een stem voor die lijst. Een smiley, een onleesbare handtekening, losse tekst of de naam van je eigen kandidaat ernaast mag, zolang je de kiezer er niet aan kunt herkennen. Twee vakjes, een andere kleur, een naam of nummer van iemand anders, of tekst en tekeningen zonder rood vakje maken het biljet ongeldig. Let op: een biljet waarop "dit is een blanco stem" staat is niet blanco maar ongeldig. Alleen een helemaal leeg biljet is blanco. De voorbeelden hieronder zijn gebaseerd op de uitleg van de Kiesraad, vereenvoudigd voor het spel.</p>
+    <div class="voorbeelden" id="voorbeelden"></div>
+    <p class="punten">
+      <span>Eén stembus: <b>100</b> biljetten. Niveau 1 t/m 5 elk <b>10</b>, niveau 6 de laatste <b>50</b></span>
+      <span>Tijd per biljet: korter per niveau, langer voor lastige biljetten</span>
+      <span>Goed: <b>100</b> + snelheidsbonus tot <b>100</b></span>
+      <span>Reeks: elke 5 goed op rij <b>+1×</b>, maximaal <b>×5</b></span>
+      <span>Fout of te laat: potlood kwijt, reeks terug naar <b>×1</b>, drie kwijt is einde</span>
+      <span>Stembus leeg: <b>5.000</b> bonus per overgebleven potlood</span>
+    </p>
+  </section>
+</div>
+
+<script>
+(function(){
+const PARTIJEN=["Duinpartij","Pier & Plein","Hofvijverlijst","Haagse Haring"];
+const ACHTERNAMEN=["de Vries","Jansen","Bakker","Visser","Smit","Meijer","de Boer","Mulder","de Groot","Bos","Vos","Peters","Hendriks","van Dijk","Dekker","Brouwer","de Wit","Dijkstra","Kaya","El Amrani","Yılmaz","Ramdin","Sewnath","Tahiri","van Leeuwen","Kok","Verbeek","Postma","Koster","Prins","Öztürk","Bouali","Kramer","van der Berg","Mahabier","Dogan","Wolters","Huisman","Hoekstra","Boukhari"];
+const LETTERS="ABCDEFGHJKLMNPRSTWY";
+const HANDTEKENING='<svg viewBox="0 0 90 30" aria-hidden="true"><path d="M4 22c5-15 10-17 12-9s-5 12 2 6 8-16 12-10-2 14 4 8 6-12 10-6 3 10 10 4 6-10 10-6 5 6 14 1M30 26c12-2 30-3 52-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
+const VOORV=/^(van der |van den |van |de |den |der )(.*)$/;
+const NEUTRAAL=["Succes tellers!","Hoi!","Bedankt :)","Den Haag ♥","Zakkenvullers!","Eindelijk!"];
+const HERKENBAAR=["Groetjes, Fatima","Bel me: 06-12345678","Getekend: P. Bakker","Stem op mijn buurman Kees","Liefs, oma Ria"];
+const VINK='<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 5.2L4 8.2L8.8 1.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
+const PIJL='<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M9 5H1.8M4.6 2.2L1.6 5L4.6 7.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
+const SMILEY='<svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="16" stroke="currentColor" stroke-width="2.4" fill="none"/><circle cx="14" cy="16" r="2" fill="currentColor"/><circle cx="26" cy="16" r="2" fill="currentColor"/><path d="M12 24c4 5 12 5 16 0" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>';
+const KRUIS='<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.6 1.8L8.4 8.3M8.3 1.5L1.8 8.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" fill="none"/></svg>';
+const POTLOOD='<svg viewBox="0 0 30 12" aria-hidden="true"><rect x="0" y="2" width="22" height="8" rx="1" fill="#D2231C"/><rect x="0" y="2" width="4" height="8" fill="#E9B6B2"/><path d="M22 2 L29 6 L22 10 Z" fill="#E8C9A0"/><path d="M26.5 4.6 L29 6 L26.5 7.4 Z" fill="#8A1510"/></svg>';
+
+const $=id=>document.getElementById(id);
+const rnd=n=>Math.floor(Math.random()*n);
+const pick=a=>a[rnd(a.length)];
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+let biljetNr=0;
+function namen(n){const uit=[],gebruikt=new Set();while(uit.length<n){const a=pick(ACHTERNAMEN);if(gebruikt.has(a))continue;gebruikt.add(a);uit.push(a+", "+pick(LETTERS)+".")}return uit}
+function gewogen(lijst){const tot=lijst.reduce((s,x)=>s+x[1],0);let r=Math.random()*tot;for(const [k,w] of lijst){if((r-=w)<0)return k}return lijst[0][0]}
+
+const TOTAAL=100,NIVEAUS=6,BONUS=5000;
+const RIJEN=[3,3,4,4,5,6];
+function achternaam(v){return v.split(",")[0]}
+function maakBiljet(L){
+  const n=RIJEN[Math.min(L,NIVEAUS)-1];
+  const b={nr:++biljetNr,n,lijsten:[0,1,2,3].map(()=>namen(n)),marks:[],naast:[],krabbel:null,vlek:null,voorv:null,lastig:false};
+  const rood=["fill"];if(L>=2)rood.push("cross","check","fill");if(L>=4)rood.push("faint");
+  const cel=()=>({lijst:rnd(4),rij:rnd(n)});
+  const ander=c=>Math.random()<.4?{lijst:c.lijst,rij:(c.rij+1+rnd(n-1))%n}:{lijst:(c.lijst+1+rnd(3))%4,rij:rnd(n)};
+  const plek=()=>({x:4+rnd(28)});
+  const stem=(c,extra)=>{const st=pick(rood);b.marks.push({...c,stijl:st});if(st==="faint")b.lastig=true;b.antwoord="l"+(c.lijst+1);b.reden=(extra?extra+": ":"")+"lijst "+(c.lijst+1)};
+  const ong=r=>{b.antwoord="ongeldig";b.reden=r+": ongeldig"};
+  const t=L>=3?1+.3*(L-3):1;
+  const soort=gewogen([["geldig",60-4*(L-1)],["blanco",8],["dubbel",10],["smiley",L>=2?5:0],
+    ["neutraal",L>=3?6*t:0],["herkenbaar",L>=3?6*t:0],["naast",L>=3?5*t:0],["cirkel",L>=3?4*t:0],["blancotekst",L>=3?4*t:0],["stemtekst",L>=3?3*t:0],
+    ["blauw",L>=4?4*t:0],["doorgehaald",L>=4?4*t:0],["puntje",L>=4?5*t:0],["lossetekst",L>=4?3*t:0],["handtekening",L>=4?4*t:0],["voorvoegsel",L>=4?4*t:0],["naamherhaald",L>=4?4*t:0]]);
+  const c=cel();
+  switch(soort){
+    case "geldig":stem(c);break;
+    case "blanco":b.antwoord="blanco";b.reden="Niets ingevuld: blanco";break;
+    case "dubbel":{const c2=L>=4?ander(c):{lijst:(c.lijst+1+rnd(3))%4,rij:rnd(n)};if(c2.lijst===c.lijst)b.lastig=true;b.marks.push({...c,stijl:pick(rood)},{...c2,stijl:pick(rood)});ong("Twee vakjes rood");break}
+    case "smiley":stem(c,"Smiley mag");b.krabbel={smiley:true,...plek()};break;
+    case "neutraal":stem(c,"Tekst zonder naam mag");b.krabbel={tekst:pick(NEUTRAAL),...plek()};break;
+    case "herkenbaar":b.marks.push({...c,stijl:pick(rood)});b.krabbel={tekst:pick(HERKENBAAR),...plek()};ong("Kiezer is herkenbaar");break;
+    case "naast":b.lastig=true;b.naast.push({...c,soort:Math.random()<.5?"kruis":"pijl"});ong("Vakje niet rood gemaakt");break;
+    case "cirkel":b.lastig=true;b.naast.push({...c,soort:"cirkel"});ong("Naam omcirkeld, vakje leeg");break;
+    case "blancotekst":b.krabbel={tekst:pick(["Dit is een blanco stem","Blanco!","Ik stem blanco"]),...plek()};ong("Geschreven, dus niet blanco");break;
+    case "stemtekst":{const o=cel();b.krabbel={tekst:"Ik stem op "+achternaam(b.lijsten[o.lijst][o.rij]),...plek()};ong("Naam geschreven, geen vakje");break}
+    case "blauw":b.marks.push({...c,stijl:"blauw"});ong("Niet met rood ingevuld");break;
+    case "doorgehaald":b.lastig=true;b.marks.push({...c,stijl:"struck"},{...ander(c),stijl:"fill"});ong("Verbeterd, dus twee vakjes");break;
+    case "puntje":b.lastig=true;stem(c,"Klein puntje telt niet");b.marks.push({...ander(c),stijl:"dot"});break;
+    case "lossetekst":b.krabbel={tekst:pick(NEUTRAAL),...plek()};ong("Wel tekst, geen vakje");break;
+    case "handtekening":stem(c,"Onleesbare handtekening mag");b.krabbel={handtekening:true,...plek()};break;
+    case "voorvoegsel":{b.lastig=true;let nm=b.lijsten[c.lijst][c.rij];
+      if(!VOORV.test(nm)){const kand=ACHTERNAMEN.filter(a=>VOORV.test(a+" ")&&!b.lijsten[c.lijst].some(x=>achternaam(x)===a));b.lijsten[c.lijst][c.rij]=pick(kand)+", "+pick(LETTERS)+"."}
+      b.voorv={lijst:c.lijst,rij:c.rij};stem(c,"Voorvoegsel doorgestreept mag");break}
+    case "naamherhaald":stem(c,"Naam van eigen kandidaat mag");b.krabbel={tekst:achternaam(b.lijsten[c.lijst][c.rij]),...plek()};break;
+  }
+  if(L>=2&&Math.random()<.22)b.vlek={x:5+rnd(70),y:10+rnd(55)};
+  return b;
+}
+/* Tijd per biljet: basis + leestijd, keer een factor die per niveau daalt (2,4 op niveau 1, 1,0 op niveau 6) */
+function tijdVoor(b,L){
+  let s=1.6+.15*(b.n-3);
+  if(b.krabbel)s+=b.krabbel.tekst?.9:.3;
+  if(b.lastig)s+=.4;
+  return s*(2.4-.28*(Math.min(L,NIVEAUS)-1))*1000;
+}
+
+function naamHTML(b,i,r){const nm=b.lijsten[i][r];
+  if(b.voorv&&b.voorv.lijst===i&&b.voorv.rij===r){const m=nm.match(VOORV);if(m)return '<s class="streep">'+esc(m[1].trim())+'</s> '+esc(m[2])}
+  return esc(nm)}
+function biljetHTML(b,cls){
+  let h='<div class="biljet '+cls+(b.krabbel?" met-krabbel":"")+'" aria-hidden="true"><div class="bk"><b>Stembiljet</b><span>Gemeenteraad ’s-Gravenhage</span><span class="bnr">№ '+String(b.nr).padStart(4,"0")+'</span></div><div class="lijsten">';
+  for(let i=0;i<4;i++){
+    h+='<div class="lijst"><div class="lh"><span>Lijst '+(i+1)+'</span><small>'+esc(PARTIJEN[i])+'</small></div>';
+    for(let r=0;r<b.n;r++){
+      const m=b.marks.find(x=>x.lijst===i&&x.rij===r);const o=b.naast.find(x=>x.lijst===i&&x.rij===r);
+      const st=m?m.stijl:"";const bin=st==="cross"||st==="struck"?KRUIS:st==="check"?VINK:"";
+      const buiten=o&&o.soort!=="cirkel"?'<span class="naast">'+(o.soort==="pijl"?PIJL:KRUIS)+'</span>':"";
+      h+='<div class="kand"><span class="vak '+st+'">'+bin+'</span><span class="naam'+(o&&o.soort==="cirkel"?" cirkel":"")+'">'+(r+1)+". "+naamHTML(b,i,r)+'</span>'+buiten+'</div>';
+    }
+    h+='</div>';
+  }
+  h+='</div>';
+  if(b.vlek)h+='<span class="vlek" style="left:'+b.vlek.x+'%;top:'+b.vlek.y+'%"></span>';
+  if(b.krabbel){const k=b.krabbel;h+='<span class="krabbel'+(k.smiley?" smiley":k.handtekening?" handtekening":"")+'" style="left:'+k.x+'%">'+(k.smiley?SMILEY:k.handtekening?HANDTEKENING:esc(k.tekst))+'</span>'}
+  return h+'</div>';
+}
+
+/* ---------- Spel ---------- */
+const stage=$("stage"),bar=$("klokBar"),klok=$("klok");
+const S={loopt:false};
+let record=Number(store.get("telavond4-record"))||0;
+
+function hud(){
+  $("hScore").textContent=(S.score||0).toLocaleString("nl-NL");
+  $("hMult").textContent="×"+mult();
+  $("hNiveau").textContent=(S.niveau||1)+"/"+NIVEAUS;
+  $("hBiljet").textContent=Math.min(TOTAAL,(S.verwerkt||0)+(S.loopt?1:0))+"/"+TOTAAL;
+  $("hRecord").textContent=record?record.toLocaleString("nl-NL"):"–";
+  $("hLevens").innerHTML=[0,1,2].map(i=>POTLOOD.replace("<svg",'<svg class="'+(i<(S.levens??3)?"":"kwijt")+'"')).join("");
+}
+const mult=()=>Math.min(5,1+Math.floor((S.reeks||0)/5));
+
+function start(){
+  Object.assign(S,{startTijd:performance.now(),loopt:true,score:0,reeks:0,langste:0,levens:3,verwerkt:0,goed:0,niveau:1,pauze:null});
+  biljetNr=0;
+  S.rij=[maakBiljet(1),maakBiljet(1),maakBiljet(1)];
+  $("startScherm").hidden=true;$("eindScherm").hidden=true;
+  stage.querySelectorAll(".biljet").forEach(e=>e.remove());
+  volgende(null);hud();
+  requestAnimationFrame(tik);
+}
+
+function volgende(uitKlasse){
+  const oud=stage.querySelector(".biljet.huidig");
+  stage.querySelectorAll(".biljet.p1,.biljet.p2").forEach(e=>e.remove());
+  if(oud){oud.classList.remove("huidig");if(uitKlasse){oud.classList.add(uitKlasse);setTimeout(()=>oud.remove(),280)}else oud.remove()}
+  S.huidig=S.rij.shift();S.rij.push(maakBiljet(S.niveau));
+  const tmp=document.createElement("div");
+  tmp.innerHTML=biljetHTML(S.rij[1],"p2")+biljetHTML(S.rij[0],"p1")+biljetHTML(S.huidig,"huidig");
+  const eerste=$("startScherm");
+  while(tmp.firstChild)stage.insertBefore(tmp.firstChild,eerste);
+  S.duur=tijdVoor(S.huidig,S.niveau);S.t0=performance.now();
+}
+
+function tik(nu){
+  if(!S.loopt)return;
+  if(S.pauze===null){
+    const f=Math.max(0,1-(nu-S.t0)/S.duur);
+    bar.style.transform="scaleX("+f+")";klok.classList.toggle("krap",f<.28);
+    if(f<=0){fout(null,"Te laat! "+S.huidig.reden);if(!S.loopt)return}
+  }
+  requestAnimationFrame(tik);
+}
+
+function melding(tekst,goed){const m=$("melding");m.className="melding";void m.offsetWidth;m.textContent=tekst;m.className="melding "+(goed?"goed":"fout")}
+function flits(keuze,klasse){const k=document.querySelector('.bak[data-keuze="'+keuze+'"]');if(!k)return;k.classList.add(klasse);setTimeout(()=>k.classList.remove(klasse),350)}
+
+function kies(keuze){
+  if(!S.loopt||S.pauze!==null)return;
+  const b=S.huidig;
+  if(keuze===b.antwoord){
+    const f=Math.max(0,1-(performance.now()-S.t0)/S.duur);
+    const pt=(100+Math.round(100*f))*mult();
+    S.score+=pt;S.reeks++;S.langste=Math.max(S.langste,S.reeks);S.goed++;S.verwerkt++;
+    flits(keuze,"flits-goed");melding("+"+pt+(mult()>1?"  ×"+mult():""),true);
+    S.niveau=Math.min(NIVEAUS,1+Math.floor(S.verwerkt/10));
+    if(S.verwerkt>=TOTAAL){eind(true,"uit-goed");return}
+    volgende("uit-goed");hud();
+  }else fout(keuze,b.reden);
+}
+
+function fout(keuze,reden){
+  S.levens--;S.reeks=0;S.verwerkt++;
+  if(keuze)flits(keuze,"flits-fout");flits(S.huidig.antwoord,"flits-goed");
+  melding(reden,false);
+  S.niveau=Math.min(NIVEAUS,1+Math.floor(S.verwerkt/10));
+  hud();
+  if(S.levens<=0){eind(false,"uit-fout");return}
+  if(S.verwerkt>=TOTAAL){eind(true,"uit-fout");return}
+  volgende("uit-fout");
+}
+
+function eind(klaar,uit){
+  S.loopt=false;
+  const oud=stage.querySelector(".biljet.huidig");
+  if(oud){oud.classList.remove("huidig");oud.classList.add(uit);setTimeout(()=>oud.remove(),280)}
+  stage.querySelectorAll(".biljet.p1,.biljet.p2").forEach(e=>e.remove());
+  bar.style.transform="scaleX(0)";
+  const bonus=klaar?S.levens*BONUS:0;S.score+=bonus;S.klaar=klaar;
+  $("eTitel").textContent=klaar?"Stembus leeg!":"Telling gestopt";
+  $("eBonus").textContent=klaar?"Alle "+TOTAAL+" biljetten geteld. Bonus: "+S.levens+(S.levens===1?" potlood":" potloden")+" × "+BONUS.toLocaleString("nl-NL")+" = "+bonus.toLocaleString("nl-NL")+" punten.":"Gestopt bij biljet "+S.verwerkt+" van "+TOTAAL+".";
+  const nauwk=S.verwerkt?Math.round(100*S.goed/S.verwerkt):0;
+  S.nauwk=nauwk;
+  $("eScore").textContent=S.score.toLocaleString("nl-NL");$("eGeteld").textContent=S.goed;$("eNauwk").textContent=nauwk+"%";$("eReeks").textContent=S.langste;
+  const nieuw=S.score>record;
+  if(nieuw){record=S.score;store.set("telavond4-record",String(record))}
+  $("eRecord").textContent=nieuw&&S.score>0?"Nieuw persoonlijk record!":"Je record staat op "+record.toLocaleString("nl-NL")+" punten.";
+  $("opslaanStatus").textContent="";$("opslaan").disabled=false;$("pinVeld").hidden=true;
+  S.duurMs=Math.round(performance.now()-S.startTijd);
+  $("naam").value=store.get("telavond2-naam")||S.profielNaam||"";
+  setTimeout(()=>{$("eindScherm").hidden=false;$("opnieuw").focus()},450);
+  hud();
+}
+
+function pauzeer(){if(S.loopt&&S.pauze===null)S.pauze=performance.now()}
+function hervat(){if(S.loopt&&S.pauze!==null&&!document.hidden&&$("viewSpel").hidden===false){S.t0+=performance.now()-S.pauze;S.pauze=null}}
+document.addEventListener("visibilitychange",()=>{document.hidden?pauzeer():hervat()});
+function toonView(voorbeelden){
+  $("viewSpel").hidden=voorbeelden;$("viewVoorbeelden").hidden=!voorbeelden;
+  window.scrollTo(0,0);
+  if(voorbeelden){pauzeer();$("naarSpel").focus()}else{hervat();$("naarVoorbeelden").blur()}
+}
+$("naarVoorbeelden").addEventListener("click",()=>toonView(true));
+$("naarSpel").addEventListener("click",()=>toonView(false));
+
+$("bakken").addEventListener("click",e=>{const k=e.target.closest(".bak");if(k)kies(k.dataset.keuze)});
+$("startKnop").addEventListener("click",start);
+$("opnieuw").addEventListener("click",start);
+document.addEventListener("keydown",e=>{
+  if(e.target.tagName==="INPUT"){if(e.key==="Enter"){e.preventDefault();$(e.target.id==="pin"?"pinKnop":"opslaan").click()}return}
+  if(!$("viewVoorbeelden").hidden){if(e.key==="Escape")toonView(false);return}
+  const k=e.key.toLowerCase();
+  if(!S.loopt){if(k==="enter"||k===" "){if(!$("startScherm").hidden||!$("eindScherm").hidden){e.preventDefault();start()}}return}
+  const map={"1":"l1","2":"l2","3":"l3","4":"l4","b":"blanco","5":"blanco","o":"ongeldig","6":"ongeldig","0":"ongeldig"};
+  if(map[k]){e.preventDefault();kies(map[k])}
+});
+
+/* ---------- Scorebord (server + Upstash) ---------- */
+const naamKey=n=>String(n||"").normalize("NFKC").toLowerCase().replace(/\s+/g," ").trim();
+let token=store.get("telavond-token");
+if(!token){token=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():Array.from({length:4},()=>Math.random().toString(36).slice(2,10)).join("-");store.set("telavond-token",token)}
+let pinModus=null;
+
+async function api(pad,data){
+  const r=await fetch(pad,data?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)}:{cache:"no-store"});
+  let j={};try{j=await r.json()}catch(e){}
+  return {status:r.status,ok:r.ok,data:j};
+}
+
+function toonBord(rijen,modus){
+  const body=$("pvBody");body.innerHTML="";
+  if(!rijen.length){body.innerHTML='<tr><td colspan="4" class="leeg">Nog niemand geteld. Speel een ronde en zet als eerste je naam op het bord.</td></tr>';}
+  rijen.forEach((r,i)=>{
+    const tr=document.createElement("tr");if(i<3)tr.className="top";if(r.jij)tr.classList.add("jij");
+    const nr=document.createElement("td");nr.className="nr";nr.textContent=i+1;
+    const nm=document.createElement("td");nm.className="nm";nm.textContent=r.naam||"Collega";
+    if(r.jij){const s=document.createElement("span");s.className="badge";s.textContent="jij";nm.appendChild(s)}
+    const pt=document.createElement("td");pt.className="pt r";pt.textContent=Number(r.best||0).toLocaleString("nl-NL");
+    const na=document.createElement("td");na.className="r";na.textContent=(r.nauwk??0)+"%";
+    tr.append(nr,nm,pt,na);body.appendChild(tr);
+  });
+  $("pvVoet").textContent=modus==="gedeeld"?"Scores van de hele afdeling. Ververst elke 30 seconden.":"Het scorebord is even niet bereikbaar. Scores staan nu alleen op dit apparaat.";
+}
+function lokaleLijst(){try{return JSON.parse(store.get("telavond4-lokaal")||"[]")}catch(e){return[]}}
+function toonLokaal(){toonBord(lokaleLijst().map(r=>({...r,jij:true})),"lokaal")}
+
+async function laadBord(){
+  try{
+    const r=await api("/api/scorebord");if(!r.ok||!Array.isArray(r.data))throw new Error();
+    const mij=naamKey(store.get("telavond2-naam"));
+    toonBord(r.data.map(x=>({...x,jij:!!mij&&naamKey(x.naam)===mij})),"gedeeld");
+  }catch(e){toonLokaal()}
+}
+setInterval(()=>{if(!document.hidden&&!S.loopt)laadBord()},30000);
+
+function toonPin(modus){
+  pinModus=modus;$("pinVeld").hidden=false;$("pin").value="";
+  $("pinKnop").textContent=modus==="koppel"?"Koppel dit apparaat":"Pincode instellen";
+  $("pinUitleg").textContent=modus==="koppel"?"Vul de pincode van deze naam in.":"Optioneel: stel een pincode in, dan kun je met deze naam ook op een ander apparaat spelen.";
+}
+
+async function verstuur(){
+  const naam=$("naam").value.trim().slice(0,24);const st=$("opslaanStatus");
+  if(naam.length<2){st.textContent="Vul eerst een naam in van minstens 2 tekens.";$("naam").focus();return}
+  store.set("telavond2-naam",naam);
+  $("opslaan").disabled=true;st.textContent="Bezig met opslaan…";
+  try{
+    const r=await api("/api/score",{naam,token,score:S.score,nauwk:S.nauwk,niveau:S.niveau,klaar:!!S.klaar,biljetten:S.verwerkt,duurMs:S.duurMs});
+    if(r.ok){
+      st.textContent=r.data.nieuw?"Opgeslagen op het scorebord.":"Je record van "+Number(r.data.best).toLocaleString("nl-NL")+" punten blijft staan.";
+      laadBord();if(!r.data.pinGezet&&!store.get("telavond-pin-gezet"))toonPin("instellen");else $("pinVeld").hidden=true;
+      return;
+    }
+    $("opslaan").disabled=false;
+    if(r.status===409){
+      st.textContent=r.data.pinMogelijk?"Deze naam is al in gebruik. Is het jouw naam?":"Deze naam is al in gebruik. Kies een andere naam.";
+      if(r.data.pinMogelijk)toonPin("koppel");else $("pinVeld").hidden=true;
+      return;
+    }
+    st.textContent=r.data.fout||"Opslaan lukte niet. Probeer het opnieuw.";
+  }catch(e){
+    const lijst=lokaleLijst();lijst.push({naam,best:S.score,nauwk:S.nauwk});lijst.sort((a,b)=>b.best-a.best);
+    store.set("telavond4-lokaal",JSON.stringify(lijst.slice(0,10)));toonLokaal();
+    st.textContent="Het scorebord is niet bereikbaar. Je score staat nu alleen op dit apparaat.";
+  }
+}
+$("opslaan").addEventListener("click",verstuur);
+
+$("pinKnop").addEventListener("click",async()=>{
+  const pin=$("pin").value.trim(),naam=$("naam").value.trim(),st=$("opslaanStatus");
+  if(!/^\d{4,6}$/.test(pin)){st.textContent="Een pincode bestaat uit 4 tot 6 cijfers.";$("pin").focus();return}
+  $("pinKnop").disabled=true;
+  try{
+    const r=await api(pinModus==="koppel"?"/api/koppel":"/api/pin",{naam,token,pin});
+    if(r.ok){
+      $("pinVeld").hidden=true;
+      if(pinModus==="koppel"){st.textContent="Dit apparaat is gekoppeld.";await verstuur()}
+      else{store.set("telavond-pin-gezet","1");st.textContent="Pincode ingesteld. Onthoud hem goed: je hebt hem nodig op een ander apparaat."}
+    }else st.textContent=r.data.fout||"Dat lukte niet. Probeer het opnieuw.";
+  }catch(e){st.textContent="Het scorebord is niet bereikbaar. Probeer het later opnieuw."}
+  $("pinKnop").disabled=false;
+});
+
+/* ---------- Voorbeelden ---------- */
+function vbBiljet(marks,extra){const b={nr:0,n:3,lijsten:[["Jansen, P.","Kaya, M.","Bos, A."],["de Wit, L.","Ramdin, S.","Kok, E."],["Visser, R.","Tahiri, N.","Smit, J."],["Mulder, H.","Dogan, F.","Prins, T."]],marks,naast:[],krabbel:null,vlek:null};return Object.assign(b,extra||{})}
+const K=(x,o)=>Object.assign({x},o);
+const VB=[
+  [vbBiljet([{lijst:1,rij:1,stijl:"fill"}]),"g","Geldig: lijst 2","Eén vakje rood gemaakt.",1],
+  [vbBiljet([{lijst:2,rij:0,stijl:"cross"}],{vlek:{x:8,y:30}}),"g","Geldig: lijst 3","Kruisje in het vakje telt. De koffievlek niet.",2],
+  [vbBiljet([{lijst:0,rij:2,stijl:"check"}]),"g","Geldig: lijst 1","Een rood vinkje in het vakje telt ook.",2],
+  [vbBiljet([{lijst:3,rij:1,stijl:"fill"}],{krabbel:K(20,{smiley:true})}),"g","Geldig: lijst 4","Een smiley maakt de kiezer niet herkenbaar.",2],
+  [vbBiljet([{lijst:1,rij:0,stijl:"fill"}],{krabbel:K(18,{tekst:"Zakkenvullers!"})}),"g","Geldig: lijst 2","Tekst zonder naam of nummer mag.",3],
+  [vbBiljet([{lijst:2,rij:2,stijl:"fill"}],{krabbel:K(18,{handtekening:true})}),"g","Geldig: lijst 3","Een onleesbare handtekening maakt de kiezer niet herkenbaar.",4],
+  [vbBiljet([{lijst:1,rij:0,stijl:"fill"}],{voorv:{lijst:1,rij:0}}),"g","Geldig: lijst 2","Voorvoegsel doorgestreept bij de eigen kandidaat mag.",4],
+  [vbBiljet([{lijst:0,rij:1,stijl:"fill"}],{krabbel:K(20,{tekst:"Kaya"})}),"g","Geldig: lijst 1","De naam van de gekozen kandidaat nog eens opschrijven mag.",4],
+  [vbBiljet([{lijst:3,rij:2,stijl:"faint"}]),"g","Geldig: lijst 4","Deels of licht rood gemaakt is ook rood gemaakt.",4],
+  [vbBiljet([{lijst:0,rij:0,stijl:"fill"},{lijst:2,rij:1,stijl:"dot"}]),"g","Geldig: lijst 1","Een piepklein rood puntje in een ander vakje telt niet mee.",4],
+  [vbBiljet([]),"b","Blanco","Niets ingevuld en niets geschreven.",1],
+  [vbBiljet([{lijst:0,rij:2,stijl:"fill"},{lijst:0,rij:0,stijl:"cross"}]),"o","Ongeldig","Twee vakjes rood, ook binnen dezelfde lijst.",1],
+  [vbBiljet([{lijst:2,rij:2,stijl:"fill"}],{krabbel:K(14,{tekst:"Groetjes, Fatima"})}),"o","Ongeldig","Een naam of telefoonnummer kan de kiezer herkenbaar maken.",3],
+  [vbBiljet([],{krabbel:K(14,{tekst:"Dit is een blanco stem"})}),"o","Ongeldig","Er staat blanco op, maar door de tekst is het biljet ongeldig.",3],
+  [vbBiljet([],{krabbel:K(18,{tekst:"Ik stem op Visser"})}),"o","Ongeldig","Een naam opschrijven is geen rood vakje.",3],
+  [vbBiljet([],{naast:[{lijst:1,rij:0,soort:"kruis"}]}),"o","Ongeldig","Kruisje naast het vakje, het vakje zelf is leeg.",3],
+  [vbBiljet([],{naast:[{lijst:3,rij:1,soort:"pijl"}]}),"o","Ongeldig","Een pijl naar de naam is geen rood vakje.",3],
+  [vbBiljet([],{naast:[{lijst:0,rij:1,soort:"cirkel"}]}),"o","Ongeldig","Naam omcirkeld, vakje leeg.",3],
+  [vbBiljet([{lijst:1,rij:2,stijl:"blauw"}]),"o","Ongeldig","Ingevuld met een andere kleur dan rood.",4],
+  [vbBiljet([{lijst:2,rij:0,stijl:"struck"},{lijst:3,rij:2,stijl:"fill"}]),"o","Ongeldig","Eén vakje doorgehaald en een ander ingekleurd: twee vakjes gebruikt.",4],
+  [vbBiljet([],{krabbel:K(22,{tekst:"Succes tellers!"})}),"o","Ongeldig","Wel geschreven, maar geen vakje rood gemaakt.",4]
+];
+$("naarVoorbeelden").textContent="Bekijk alle "+VB.length+" voorbeeldbiljetten";
+$("voorbeelden").innerHTML=VB.map(([b,k,t,u,nv])=>'<div class="vb"><div class="mini">'+biljetHTML(b,"").replace("№ 0000","voorbeeld")+'</div><div class="uitslag '+k+'">'+t+'<span class="nv">vanaf niveau '+nv+'</span></div><p>'+u+'</p></div>').join("");
+
+hud();bar.style.transform="scaleX(1)";
+laadBord();
+})();
+</script>
+</body>
+</html>
